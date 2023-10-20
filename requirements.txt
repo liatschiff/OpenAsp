@@ -1,0 +1,8 @@
+# pin nltk version for sacrerouge sentence tokenizer
+nltk==3.8.1
+requests~=2.31.0
+sacrerouge==0.2.5
+spacy==3.4.*
+# exact version of spacy model
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.4.1/en_core_web_sm-3.4.1-py3-none-any.whl
+Unidecode==1.3.7
