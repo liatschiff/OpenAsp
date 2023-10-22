@@ -1,6 +1,6 @@
 # OpenAsp Dataset
 
-`OpenAsp` is an open aspect-based Multi Document Summarization derived from `DUC` summarization datasets and `MultiNews`.
+`OpenAsp` is an Open Aspect-based Multi-Document Summarization dataset derived from `DUC` and `MultiNews` summarization datasets.
 
 ![Antarctica](antarctica.png)
 
