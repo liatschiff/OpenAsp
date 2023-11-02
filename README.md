@@ -1,6 +1,6 @@
 # OpenAsp Dataset
 
-`OpenAsp` is an open aspect-based Multi Document Summarization derived from `DUC` summarization datasets and `MultiNews`.
+`OpenAsp` is an Open Aspect-based Multi-Document Summarization dataset derived from `DUC` and `MultiNews` summarization datasets.
 
 ![Antarctica](antarctica.png)
 
@@ -13,7 +13,7 @@ To generate `OpenAsp`, you require access to the `DUC` dataset which OpenAsp is 
 1. Grant access to DUC dataset by following NIST instructions [here](https://duc.nist.gov/data.html).
    * you should receive two user-password pairs (for DUC01-02 and DUC06-07)
    * you should receive a file named `fwdrequestingducdata.zip`
-2. Clone this repository by running the following command: `git clone https://github.com/shmuelamar/openasp.git`
+2. Clone this repository by running the following command: `git clone https://github.com/liatschiff/OpenAsp.git`
 3. Optionally create a `conda` or `virtualenv` environment:
 
 ```bash
@@ -27,7 +27,7 @@ conda activate openasp
 pip install -r requirements.txt
 ```
 
-5. copy `fwdrequestingducdata.zip` into the `openasp` repo directory
+5. copy `fwdrequestingducdata.zip` into the `OpenAsp` repo directory
 
 6. run the prepare script command:
 
