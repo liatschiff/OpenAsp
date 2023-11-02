@@ -40,7 +40,8 @@ python prepare_openasp_dataset.py --nist-duc2001-user '<2001-user>' --nist-duc20
 ```python
 from glob import glob
 import os
-
+import gzip
+import shutil
 from datasets import load_dataset
 
 openasp_files = os.path.join('openasp-v1', '*.jsonl.gz')
@@ -49,6 +50,12 @@ data_files = {
     os.path.basename(fname).split('.')[0]: fname
     for fname in glob(openasp_files)
 }
+
+for ftype, fname in data_files.copy().items():
+    with gzip.open(fname, 'rb') as gz_file:
+        with open(fname[:-3], 'wb') as output_file:
+            shutil.copyfileobj(gz_file, output_file)
+    data_files[ftype] = fname[:-3]
 
 # load OpenAsp as huggingface's dataset
 openasp = load_dataset('json', data_files=data_files)
@@ -63,12 +70,14 @@ for split in ['train', 'valid', 'test']:
     summary = '\n'.join(sample['summary_text'])
     input_docs_text = ['\n'.join(d['text']) for d in sample['documents']]
 
-    print(f'Sample from {split} split title={title} aspect label={aspect_label}')
-    print(summary)
+    print('* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+    print(f'Sample from {split}\nSplit title={title}\nAspect label={aspect_label}')
+    print(f'\naspect-based summary:\n {summary}')
     print('\ninput documents:\n')
     for i, doc_txt in enumerate(input_docs_text):
         print(f'---- doc #{i} ----')
         print(doc_txt[:256] + '...')
+    print('* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n\n')
 ```
 
 ### Troubleshooting
