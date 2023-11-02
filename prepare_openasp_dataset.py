@@ -500,6 +500,8 @@ def prepare_aspect_dataset(aspect_dataset, workdir: str):
     for row in aspect_dataset:
         generic_record = topic_id2record[row['topic_id']]
         generic_summary = generic_record['summary']
+        row['reviewer_modified'] = str(row['reviewer_modified'])
+        row['review_comment'] = str(row['review_comment'])
         row['summary_text'] = [
             generic_summary[sent_id] for sent_id in row['summary_sentence_indices']
         ]
