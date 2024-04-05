@@ -13,6 +13,7 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import Dict
 from typing import List, Sequence, Iterable, Set
+from urllib.parse import urlencode
 
 import requests
 import spacy
@@ -75,6 +76,8 @@ MNEWS_INPUT_FNAMES = (
     ('valid', 'valid.jsonl.gz'),
     ('test', 'test.jsonl.gz'),
 )
+
+MULTINEWS_TRAIN_SHA256 = '627781c8ce55d528fcdacd495db45583a915e2d24b7983b0a5a6693ede933bb1'
 
 
 # the following duc20xx methods are a simplified version of the sacrerouge python code
@@ -287,6 +290,74 @@ def download_file(url: str, fname: str):
                     f.write(chunk)
 
 
+def _verify_multinews_train_hash(train_src_fname: str):
+    if not os.path.exists(train_src_fname):
+        raise ValueError(f'Multinews train file {train_src_fname} doesnt exist')
+    with open(train_src_fname, 'rb') as f:
+        res = hashlib.sha256(f.read()).hexdigest()
+    if res != MULTINEWS_TRAIN_SHA256:
+        raise ValueError(
+            f'Multinews train file in {train_src_fname} is corrupted. please remove and manually download it again'
+        )
+
+
+def _download_multinews_train_link_option1(train_src_fname: str):
+    """Train is too big and requires Google Drive consent for skipping
+    antivirus scan.
+
+    That's the only file from Multi-News that needs a user consent, in
+    this function we try to download the file in multiple possible ways.
+    Upon failure, we request the user to manually downlaod the file and
+    re-run the python script.
+    """
+    logger.info('getting multinews train file link from google drive')
+    redirect_html = requests.get(
+        'https://docs.google.com/uc?export=download',
+        params={'id': '1wHAWDOwOoQWSj7HYpyJ3Aeud8WhhaJ7P'},
+    ).text
+
+    direct_train_url = (
+        re.search(r'action="(https://docs.google.com[^"]*)"', redirect_html)
+        .group(1)
+        .replace('&amp;', '&')
+    )
+
+    logger.info(f'downloading multinews train file from {direct_train_url} into {train_src_fname}')
+    download_file(direct_train_url, train_src_fname)
+    _verify_multinews_train_hash(train_src_fname)
+
+
+def _download_multinews_train_link_option2(train_src_fname: str):
+    url = (
+        'https://drive.usercontent.google.com/download?'
+        'id=1wHAWDOwOoQWSj7HYpyJ3Aeud8WhhaJ7P&export=download'
+    )
+    logger.info(f'getting multinews train file link from {url}')
+    resp = requests.get(url)
+    resp.raise_for_status()
+
+    # create the direct url from the html form by extracting params and action url
+    form = re.search('<form .*</form>', resp.text).group(0)
+    params = dict(re.findall('<input .*? name="([^"]+)" value="([^"]+)"', form))
+    direct_train_url = re.search('action="([^"]+)"', form).group(1)
+
+    logger.info(f'downloading multinews train file from {direct_train_url} into {train_src_fname}')
+
+    direct_download_url = f'{direct_train_url}?{urlencode(params)}'
+    download_file(direct_download_url, train_src_fname)
+    _verify_multinews_train_hash(train_src_fname)
+
+
+def _download_multinews_train_link_manually(train_src_fname: str):
+    url = 'https://docs.google.com/uc?export=download&id=1wHAWDOwOoQWSj7HYpyJ3Aeud8WhhaJ7P'
+    logger.info(
+        f'Please download the following file manually - {url} and place it in {train_src_fname}'
+    )
+    logger.info(f'once done, press any key to continue, or rerun the script...')
+    input()
+    _verify_multinews_train_hash(train_src_fname)
+
+
 def download_multinews(workdir: str):
     outdir = os.path.join(workdir, 'mnews')
     if all(os.path.exists(os.path.join(outdir, f)) for _, f in MNEWS_INPUT_FNAMES):
@@ -303,22 +374,28 @@ def download_multinews(workdir: str):
         logger.info('skipping download of mnews train set - already exist')
     else:
         logger.info('getting multinews train file link from google drive')
-        redirect_html = requests.get(
-            'https://docs.google.com/uc?export=download',
-            params={'id': '1wHAWDOwOoQWSj7HYpyJ3Aeud8WhhaJ7P'},
-        ).text
-
-        direct_train_link = (
-            re.search(r'action="(https://docs.google.com[^"]*)"', redirect_html)
-            .group(1)
-            .replace('&amp;', '&')
-        )
-
-        logger.info(
-            f'downloading multinews train file from {direct_train_link} into {train_src_fname}'
-        )
         os.makedirs(os.path.dirname(train_src_fname), exist_ok=True)
-        download_file(direct_train_link, train_src_fname)
+
+        try:
+            _download_multinews_train_link_option1(train_src_fname)
+            logger.info('multi-news train downloaded with option #1 successfully')
+        except Exception:
+            logger.warning(
+                'failed to download multinews train file with option #1, trying option #2',
+                exc_info=True,
+            )
+
+            try:
+                _download_multinews_train_link_option2(train_src_fname)
+                logger.info('multi-news train downloaded with option #2 successfully')
+            except Exception:
+                logger.warning(
+                    'failed to download multinews train file with option #2, please follow '
+                    'instructions to download it manually.',
+                    exc_info=True,
+                )
+                _download_multinews_train_link_manually(train_src_fname)
+                logger.info('multi-news train downloaded manually successfully')
 
     multinews_download_task.setup(output_dir=outdir, force=False)
 
